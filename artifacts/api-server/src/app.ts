@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 // Production: serve the compiled ContractLens frontend from the same Render web service.
-const frontendDist = path.resolve(process.cwd(), "artifacts/contractlens/dist/public");
+const frontendDist = path.resolve(process.cwd(), "../contractlens/dist/public");
 app.use(express.static(frontendDist));
 app.use((req, res, next) => {
   if (req.method === "GET" && !req.path.startsWith("/api")) {
