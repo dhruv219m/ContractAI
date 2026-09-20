@@ -1,0 +1,505 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: contracts
+    description: Contract operations
+  - name: dashboard
+    description: Workspace overview
+  - name: review
+    description: Human review queue
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /contracts:
+    get:
+      operationId: listContracts
+      tags: [contracts]
+      summary: List contracts
+      responses:
+        "200":
+          description: Contracts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContractListItem"
+    post:
+      operationId: uploadContract
+      tags: [contracts]
+      summary: Create a contract from an uploaded document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractUploadInput"
+      responses:
+        "201":
+          description: Contract created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractDetail"
+  /contracts/{id}:
+    get:
+      operationId: getContract
+      tags: [contracts]
+      summary: Get a contract
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Contract detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /contracts/{id}/analyze:
+    post:
+      operationId: analyzeContract
+      tags: [contracts]
+      summary: Run the orchestrated contract analysis
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Analyzed contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractDetail"
+  /contracts/{id}/obligations:
+    get:
+      operationId: getContractObligations
+      tags: [contracts]
+      summary: List obligations
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Obligations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Obligation"
+  /contracts/{id}/timeline:
+    get:
+      operationId: getContractTimeline
+      tags: [contracts]
+      summary: List contract deadlines
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Timeline
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deadline"
+  /contracts/{id}/chat:
+    post:
+      operationId: chatWithContract
+      tags: [contracts]
+      summary: Ask a source-grounded question
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: Grounded answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatAnswer"
+  /contracts/{id}/versions:
+    post:
+      operationId: uploadContractVersion
+      tags: [contracts]
+      summary: Add a contract version
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VersionUploadInput"
+      responses:
+        "201":
+          description: New version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContractVersion"
+  /contracts/{id}/compare:
+    post:
+      operationId: compareContractVersions
+      tags: [contracts]
+      summary: Compare the current contract versions
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Material changes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comparison"
+  /contracts/{id}/review:
+    get:
+      operationId: getContractReview
+      tags: [review]
+      summary: List review items for a contract
+      parameters:
+        - $ref: "#/components/parameters/ContractId"
+      responses:
+        "200":
+          description: Review items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewItem"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard aggregates
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /activity:
+    get:
+      operationId: getActivity
+      tags: [dashboard]
+      summary: Get recent agent activity
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentAction"
+  /review/{id}/resolve:
+    post:
+      operationId: resolveReviewItem
+      tags: [review]
+      summary: Update a human review item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewResolutionInput"
+      responses:
+        "200":
+          description: Updated review item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewItem"
+components:
+  parameters:
+    ContractId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    ContractUploadInput:
+      type: object
+      properties:
+        filename: { type: string }
+        versionLabel: { type: string }
+        isDemo: { type: boolean }
+      required: [filename]
+    VersionUploadInput:
+      type: object
+      properties:
+        filename: { type: string }
+        versionLabel: { type: string }
+        isDemo: { type: boolean }
+      required: [filename]
+    ContractListItem:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        parties: { type: array, items: { type: string } }
+        status: { type: string }
+        renewalDate: { type: string }
+        daysToRenewal: { type: integer }
+        obligationCount: { type: integer }
+        reviewCount: { type: integer }
+        version: { type: integer }
+        updatedAt: { type: string }
+      required: [id, name, type, parties, status, renewalDate, daysToRenewal, obligationCount, reviewCount, version, updatedAt]
+    SourceEvidence:
+      type: object
+      properties:
+        page: { type: integer }
+        section: { type: string }
+        excerpt: { type: string }
+        sourceType: { type: string }
+      required: [page, section, excerpt, sourceType]
+    ContractParty:
+      type: object
+      properties:
+        name: { type: string }
+        role: { type: string }
+      required: [name, role]
+    KeyFact:
+      type: object
+      properties:
+        label: { type: string }
+        value: { type: string }
+        kind: { type: string }
+        evidence:
+          $ref: "#/components/schemas/SourceEvidence"
+      required: [label, value, kind, evidence]
+    Obligation:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        owner: { type: string }
+        status: { type: string }
+        dueDate: { type: string }
+        recurrence: { type: string }
+        confidence: { type: number }
+        evidence:
+          $ref: "#/components/schemas/SourceEvidence"
+        affectedByChange: { type: boolean }
+      required: [id, title, description, owner, status, dueDate, recurrence, confidence, evidence, affectedByChange]
+    Deadline:
+      type: object
+      properties:
+        id: { type: integer }
+        date: { type: string }
+        title: { type: string }
+        type: { type: string }
+        status: { type: string }
+        owner: { type: string }
+        source:
+          $ref: "#/components/schemas/SourceEvidence"
+      required: [id, date, title, type, status, owner, source]
+    ReviewItem:
+      type: object
+      properties:
+        id: { type: integer }
+        issue: { type: string }
+        reason: { type: string }
+        severity: { type: string }
+        status: { type: string }
+        suggestedAction: { type: string }
+        evidence:
+          $ref: "#/components/schemas/SourceEvidence"
+        contractId: { type: integer }
+      required: [id, issue, reason, severity, status, suggestedAction, evidence, contractId]
+    AgentAction:
+      type: object
+      properties:
+        id: { type: integer }
+        agent: { type: string }
+        message: { type: string }
+        status: { type: string }
+        timestamp: { type: string }
+        contractId: { type: integer }
+      required: [id, agent, message, status, timestamp, contractId]
+    ContractVersion:
+      type: object
+      properties:
+        id: { type: integer }
+        label: { type: string }
+        filename: { type: string }
+        uploadedAt: { type: string }
+        isCurrent: { type: boolean }
+      required: [id, label, filename, uploadedAt, isCurrent]
+    Change:
+      type: object
+      properties:
+        category: { type: string }
+        label: { type: string }
+        oldValue: { type: string }
+        newValue: { type: string }
+        sourceA:
+          $ref: "#/components/schemas/SourceEvidence"
+        sourceB:
+          $ref: "#/components/schemas/SourceEvidence"
+        affectedObligations: { type: array, items: { type: integer } }
+        downstreamImpact: { type: string }
+        requiresReview: { type: boolean }
+      required: [category, label, oldValue, newValue, sourceA, sourceB, affectedObligations, downstreamImpact, requiresReview]
+    Comparison:
+      type: object
+      properties:
+        versionA: { type: string }
+        versionB: { type: string }
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Change"
+        summary: { type: string }
+      required: [versionA, versionB, changes, summary]
+    ContractDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        status: { type: string }
+        parties:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContractParty"
+        facts:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeyFact"
+        obligations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Obligation"
+        deadlines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deadline"
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewItem"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContractVersion"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentAction"
+        comparison:
+          type: ["object", "null"]
+          properties:
+            versionA: { type: string }
+            versionB: { type: string }
+            changes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Change"
+            summary: { type: string }
+          required: [versionA, versionB, changes, summary]
+      required: [id, name, type, status, parties, facts, obligations, deadlines, reviews, versions, activity, comparison]
+    ChatInput:
+      type: object
+      properties:
+        question: { type: string, minLength: 1 }
+      required: [question]
+    ChatAnswer:
+      type: object
+      properties:
+        question: { type: string }
+        answer: { type: string }
+        confidence: { type: number }
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceEvidence"
+        answerType: { type: string }
+      required: [question, answer, confidence, evidence, answerType]
+    ReviewResolutionInput:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    Dashboard:
+      type: object
+      properties:
+        activeContracts: { type: integer }
+        upcomingObligations: { type: integer }
+        requiresReview: { type: integer }
+        upcomingRenewals: { type: integer }
+        contracts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContractListItem"
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deadline"
+        reviewQueue:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReviewItem"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentAction"
+      required: [activeContracts, upcomingObligations, requiresReview, upcomingRenewals, contracts, timeline, reviewQueue, activity]
+

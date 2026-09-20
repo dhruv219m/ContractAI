@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ContractLens"
+description = "An agentic contract operations workspace that turns business agreements into structured facts, obligations, deadlines, review items, and version-aware action plans."
+version = "1.0.0"
+id = "artifacts/contractlens"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20455
+
+[services.development]
+run = "pnpm --filter @workspace/contractlens run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/contractlens", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/contractlens/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20455"
+BASE_PATH = "/"
